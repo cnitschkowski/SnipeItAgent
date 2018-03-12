@@ -1,11 +1,12 @@
 # SnipeItAgent
-A Snipeit Agent that reports system details to the Snipe-it asset Database.
+A SnipeIt Agent that reports system details to the Snipe-it asset Database.
 Any Suggestions and request for new features, please create an issue.
 
 ### Prerequisites
 
 ```
 A Working Install of Snipe IT V4+
+.NET Framework 4.6.1 or later.
 ```
 
 ### Library Packages
