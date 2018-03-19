@@ -20,7 +20,7 @@ namespace SnipeItAgent
         [Option('s', "status", HelpText = "Id of the status label the asset should be assigned to.")]
         public int? StatusLabelId { get; set; }
 
-        [Option('c', "company", HelpText = "Id of the company the asset should be assigned to.")]
+        [Option('C', "company", HelpText = "Id of the company the asset should be assigned to.")]
         public int? CompanyId { get; set; }
 
         [Option('m', "manufacturer", HelpText = "Id of the manufacturer the asset should be assigned to.")]
