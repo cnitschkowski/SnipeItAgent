@@ -35,9 +35,45 @@ namespace SnipeItAgent
             };
 
             var provider = new WindowsSystemInfoProvider();
-            
             var info = provider.GetSystemInfo();
+            
+            var assetName = string.IsNullOrEmpty(startOption.AssetName) ? info.Hostname : startOption.AssetName;
+            var asset = access.Get<Asset>(assetName);
 
+            Func<Asset, Asset> saveAsset;
+
+            if (asset == null)
+            {
+                asset = CreateAsset(assetName, access, startOption, config, info);
+
+                saveAsset = a => access.Create(a);
+            }
+            else
+            {
+                saveAsset = a => access.Update(a);
+            }
+
+            TryUpdateCompany(asset, access, config);
+
+            TryUpdateLocation(asset, access, config);
+
+            TryUpdateCustomFields(asset, access, info);
+
+            asset = saveAsset(asset);
+
+            if (asset == null)
+            {
+                return 1;
+            }
+
+            Console.Out.Write(asset.AssetTag);
+            
+            return 0;
+        }
+
+        private static Asset CreateAsset(string assetName, SnipeAccess access, StartOption startOption, Config config,
+            SystemInfo info)
+        {
             var isClient = startOption.IsClient ?? info.IsClient;
             var isNotebook = startOption.IsNotebook ?? info.IsNotebook;
 
@@ -54,77 +90,97 @@ namespace SnipeItAgent
                 var categoryName = isClient ? isNotebook ? "Notebook" : "Desktop" : "Server";
                 var category =
                     access.Get<Category>(categoryName) ??
-                    access.Create(new Category { Name = categoryName, Type = "asset"});
+                    access.Create(new Category {Name = categoryName, Type = "asset"});
 
                 model = new Model {Name = info.Model, Manufacturer = manufacturer, Category = category};
                 model = access.Create(model);
             }
 
-            var assetName = string.IsNullOrEmpty(startOption.AssetName) ? info.Hostname : startOption.AssetName;
-            var asset = access.Get<Asset>(assetName) ?? access.Get<Asset>(info.Hostname);
-            Func<Asset, Asset> saveAsset;
-            
-            if (asset == null)
+            StatusLabel statusLabel;
+            if (config.StatusLabelId > 0)
             {
-                StatusLabel statusLabel;
-                if (config.StatusLabelId > 0)
-                {
-                    statusLabel = access.Get<StatusLabel>(config.StatusLabelId);
-                }
-                else
-                {
-                    var labels = access.Get<StatusLabel>();
-                    statusLabel = labels.FirstOrDefault(l => l.Type == "deployable");
-                }
-
-                asset = new Asset
-                {
-                    Manufacturer = manufacturer,
-                    Model = model,
-                    Name = assetName,
-                    Serial = info.SerialNumber,
-                    AssetTag = startOption.NewAssetTag ?? string.Empty,
-                    StatusLabel = statusLabel
-                };
-
-                saveAsset = a => access.Create(a);
+                statusLabel = access.Get<StatusLabel>(config.StatusLabelId);
             }
             else
             {
-                saveAsset = a => access.Update(a);
+                var labels = access.Get<StatusLabel>();
+                statusLabel = labels.FirstOrDefault(l => l.Type == "deployable");
             }
 
-            // Update the company if not known yet or changed using options.
-            if ((asset.Company == null || asset.Company.Id != config.CompanyId) && config.CompanyId > 0)
+            return new Asset
             {
-                asset.Company = access.Get<Company>(config.CompanyId);
-            }
+                Manufacturer = manufacturer,
+                Model = model,
+                Name = assetName,
+                Serial = info.SerialNumber,
+                AssetTag = startOption.NewAssetTag ?? string.Empty,
+                StatusLabel = statusLabel
+            };
+        }
 
-            // Update the company if not known yet or changed.
-            if ((asset.Location == null || asset.Location.Id != config.LocationId) && config.LocationId > 0)
-            {
-                asset.Location = access.Get<Location>(config.LocationId);
-            }
-            
+        private static void TryUpdateCustomFields(Asset asset, SnipeAccess access, SystemInfo info)
+        {
+            var columnNames = GetCustomFieldNames(access, "Memory", "Platform");
+
             var customFields = asset.CustomFields;
             if (customFields == null)
             {
                 customFields = new Dictionary<string, string>();
                 asset.CustomFields = customFields;
             }
-            
-            customFields.AddOrSet("Memory", info.Memory.ToString());
-            customFields.AddOrSet("Platform", info.Platform);
 
-            asset = saveAsset(asset);
-
-            if (asset == null)
+            if (!string.IsNullOrEmpty(columnNames["Memory"]))
             {
-                return 1;
+                customFields.AddOrSet(columnNames["Memory"], info.Memory.ToString());
             }
 
-            Console.Out.Write(asset.AssetTag);
-            return 0;
+            if (!string.IsNullOrEmpty(columnNames["Platform"]))
+            {
+                customFields.AddOrSet(columnNames["Platform"], info.Platform);
+            }
+        }
+
+        private static void TryUpdateLocation(Asset asset, ISnipeAccess access, Config config)
+        {
+            // Update the location if not known yet or changed.
+            if ((asset.Location == null || asset.Location.Id != config.LocationId) && config.LocationId > 0)
+            {
+                asset.Location = access.Get<Location>(config.LocationId);
+            }
+        }
+
+        private static void TryUpdateCompany(Asset asset, ISnipeAccess access, Config config)
+        {
+            // Update the company if not known yet or changed using options.
+            if ((asset.Company == null || asset.Company.Id != config.CompanyId) && config.CompanyId > 0)
+            {
+                asset.Company = access.Get<Company>(config.CompanyId);
+            }
+        }
+
+        /// <summary>
+        /// Gets the db column names of the specified field names.
+        /// </summary>
+        /// <param name="access">SnipeAccess object.</param>
+        /// <param name="fieldNames">Names of the fields.</param>
+        private static Dictionary<string, string> GetCustomFieldNames(ISnipeAccess access, params string[] fieldNames)
+        {
+            var names = new Dictionary<string, string>();
+            var fieldNamesList = fieldNames.ToList();
+            
+            var fieldSets = access.Get<FieldSet>();
+            foreach (var fieldSet in fieldSets)
+            {
+                foreach (var field in fieldSet.Fields.Rows)
+                {
+                    if (fieldNamesList.Contains(field.Name))
+                    {
+                        names.Add(field.Name, field.DbColumnName);
+                    }
+                }
+            }
+
+            return names;
         }
 
         private static Config GetConfig(StartOption startOption)

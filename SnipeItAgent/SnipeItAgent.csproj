@@ -5,13 +5,13 @@
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{E4D4ED99-0203-4FAE-83DC-AF4CA4B6CA1E}</ProjectGuid>
-    <OutputType>Exe</OutputType>
+    <OutputType>WinExe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>SnipeItAgent</RootNamespace>
     <AssemblyName>SnipeItAgent</AssemblyName>
     <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
-    <LangVersion>6</LangVersion>
+    <LangVersion>7</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -42,8 +42,8 @@
     <Reference Include="RestSharp, Version=106.2.1.0, Culture=neutral, PublicKeyToken=598062e77f915f75">
       <HintPath>..\packages\RestSharp.106.2.1\lib\net452\RestSharp.dll</HintPath>
     </Reference>
-    <Reference Include="SnipeSharp, Version=0.2.3.0, Culture=neutral, PublicKeyToken=null">
-      <HintPath>..\packages\SnipeSharp-cn.0.2.3\lib\net452\SnipeSharp.dll</HintPath>
+    <Reference Include="SnipeSharp, Version=0.3.0.0, Culture=neutral, PublicKeyToken=null">
+      <HintPath>..\packages\SnipeSharp-cn.0.3.0\lib\net452\SnipeSharp.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Console, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">

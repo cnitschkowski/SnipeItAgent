@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using SnipeSharp;
 using SnipeSharp.Common;
 using SnipeSharp.Endpoints;
@@ -76,9 +75,15 @@ namespace SnipeItAgent
         {
             var manager = this._lazyRemote.Value.GetEndpointManager<T>();
 
-            var item = manager.Get(name);
+            var response = manager.FindAll(new SearchFilter {Search = name});
 
-            return item;
+            if (response.Total == 0)
+            {
+                return null;
+            }
+
+            return response.Rows.FirstOrDefault(r =>
+                string.Equals(r?.Name, name, StringComparison.InvariantCultureIgnoreCase));
         }
 
         public T Update<T>(T item) where T : CommonEndpointModel
